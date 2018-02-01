@@ -1,0 +1,104 @@
+#encoding=utf-8
+from bottle import route, run, request,static_file,template
+import MySQLdb
+import json
+
+@route('/main')
+def main():
+    return static_file("main.html", root='./static/html')
+
+@route('/getItemList')
+def getItemList():
+    params = request.params
+    page = int(params["page"])-1
+    db = MySQLdb.connect("172.16.4.22", "root", "root", "jiancy", charset="utf8")
+    cursor = db.cursor()
+
+    cursor.execute("select count(1) from testData")
+    results = cursor.fetchone()
+    rowcounts = results[0]
+    pagenum = rowcounts / 10 + 1
+    if (rowcounts % 10 == 0):
+        pagenum = pagenum - 1
+
+    cursor.execute("select id,title from testData limit "+str(page*10)+",10")
+    results = cursor.fetchall()
+    list = []
+    for row in results:
+        item = {}
+        item["id"] = row[0]
+        item["content"] = row[1]
+        list.append(item)
+    result = {}
+    result["data"]=list
+    result["pagenum"]=pagenum
+    return json.dumps(result,ensure_ascii=False)
+
+@route('/itemView/<id>')
+def itemView(id):
+    db = MySQLdb.connect("172.16.4.22", "root", "root", "jiancy", charset="utf8")
+    cursor = db.cursor()
+    # 查询文章
+    cursor.execute("select id,title,content,marked_rights from testData where id=" + id)
+    content = cursor.fetchone()
+    file = {}
+    file["id"]=content[0]
+    file["title"] = content[1]
+    file["content"] = content[2]
+    file["rights"] = []
+    markedRights = json.loads(content[3])
+    rightStr = ""
+    for right in markedRights:
+        rightStr += str(right)+","
+    if(len(rightStr)>0):
+        rightStr = rightStr[:-1]
+        cursor.execute("select id,right_no,right_name from rights where UNIQUE_ID in (" + rightStr +") order by id asc")
+        file["rights"] = cursor.fetchall()
+
+    # 查询权利清单
+    rights = {}
+    cursor.execute("select version,result,version_des from testResult where testDataId="+id +" order by version asc")
+    results = cursor.fetchall()
+    for row in results:
+        item = {}
+        item["version"] = str(row[0])+"("+row[2]+")"
+        #解析权利清单
+        rightList = json.loads(row[1].replace("'", "\""))
+        rightStr = ""
+        for right in rightList:
+            rightStr += str(right["uniqueId"]) + ","
+        if (len(rightStr) > 0):
+            rightStr = rightStr[:-1]
+            cursor.execute("select id,right_no,right_name,UNIQUE_ID from rights where UNIQUE_ID in (" + rightStr + ") order by id asc")
+            rightListTemp = cursor.fetchall()
+            item["rights"] = []
+            #设置权限
+            for right1 in rightListTemp:
+                for right2 in rightList:
+                    if(right1[3] == long(right2["uniqueId"])):
+                        weight = right2["weight"]
+                        index = 0
+                        for pos in range(len(item["rights"])):
+                            if(item["rights"][pos][4]>weight):
+                                index = pos+1
+                        right1 = right1 + (right2["weight"],)
+                        item["rights"].insert(index,list(right1))
+                        break
+
+        if (rights.has_key(item["version"]) == False):
+            rights[item["version"]] = []
+        rights[item["version"]]=item
+    result = {}
+    result["content"] = file
+    result["rights"] = rights
+    return template('itemView', data=json.dumps(result,ensure_ascii=False))
+
+@route('/static/css/<filename>')
+def server_static(filename):
+    return static_file(filename, root='./static/css')
+
+@route('/static/js/<filename>')
+def server_static(filename):
+    return static_file(filename, root='./static/js')
+
+run(host='0.0.0.0', port=8080, debug=True)

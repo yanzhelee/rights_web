@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="static/css/bootstrap.css"/>
+    <link rel="stylesheet" href="static/css/bootstrap-theme.css"/>
+    <script src="static/js/jquery-2.1.1.js"></script>
+    <script src="static/js/bootstrap.js"></script>
+    <script src="static/js/bootstrap-paginator.min.js"></script>
+
+    <title>权利清单验证</title>
+</head>
+<body class="container">
+<div class="row">
+    <div class="col-md-12">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 80%;">文章标题</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <ul id="pagingul"></ul>
+    </div>
+</div>
+</body>
+<script type="text/javascript">
+    $.ajax({
+        url: 'getItemList?page=1',
+        type: 'get',
+        dataType: 'json',
+        success: function (data) {
+            var items = data.data;
+            for(var i=0;i<items.length;i++){
+                var trhtml = "<tr><td>"+items[i].content+"</td><td><a target='_blank' href='itemView/"+items[i].id+"'>详细信息</a></td></tr>"
+                $("table tbody").append(trhtml)
+            }
+
+            $('#pagingul').bootstrapPaginator({
+                bootstrapMajorVersion: 3,//bootstrap版本
+                currentPage: 1,//当前页码
+                totalPages: data.pagenum,//总页数（后台传过来的数据）
+                numberOfPages: 5,//一页显示几个按钮
+                itemTexts: function (type, page, current) {
+                    switch (type) {
+                        case "first": return "首页";
+                        case "prev": return "上一页";
+                        case "next": return "下一页";
+                        case "last": return "末页";
+                        case "page": return page;
+                    }
+                },//改写分页按钮字样
+                onPageClicked: function (event, originalEvent, type, page) {
+                    $.ajax({
+                        url: 'getItemList',
+                        type: 'get',
+                        data: {page: page},
+                        dataType: 'json',
+                        success: function (data) {
+                            $("table tbody").html("")
+                            var items = data.data;
+                            for(var i=0;i<items.length;i++){
+                                var trhtml = "<tr><td>"+items[i].content+"</td><td><a target='_blank' href='itemView/"+items[i].id+"'>详细信息</a></td></tr>"
+                                $("table tbody").append(trhtml)
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+</script>
+</html>
