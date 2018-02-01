@@ -1,6 +1,6 @@
 #encoding=utf-8
 from bottle import route, run, request,static_file,template
-import MySQLdb
+import pymysql
 import json
 
 @route('/main')
@@ -11,7 +11,7 @@ def main():
 def getItemList():
     params = request.params
     page = int(params["page"])-1
-    db = MySQLdb.connect("172.16.4.22", "root", "root", "jiancy", charset="utf8")
+    db = pymysql.connect("172.16.4.22", "root", "root", "jiancy", charset="utf8")
     cursor = db.cursor()
 
     cursor.execute("select count(1) from testData")
@@ -36,7 +36,7 @@ def getItemList():
 
 @route('/itemView/<id>')
 def itemView(id):
-    db = MySQLdb.connect("172.16.4.22", "root", "root", "jiancy", charset="utf8")
+    db = pymysql.connect("172.16.4.22", "root", "root", "jiancy", charset="utf8")
     cursor = db.cursor()
     # 查询文章
     cursor.execute("select id,title,content,marked_rights from testData where id=" + id)
@@ -75,7 +75,7 @@ def itemView(id):
             #设置权限
             for right1 in rightListTemp:
                 for right2 in rightList:
-                    if(right1[3] == long(right2["uniqueId"])):
+                    if(right1[3] == int(right2["uniqueId"])):
                         weight = right2["weight"]
                         index = 0
                         for pos in range(len(item["rights"])):
@@ -85,7 +85,8 @@ def itemView(id):
                         item["rights"].insert(index,list(right1))
                         break
 
-        if (rights.has_key(item["version"]) == False):
+        #if (rights.has_key(item["version"]) == False):
+        if (rights.get(item["version"]) is None):
             rights[item["version"]] = []
         rights[item["version"]]=item
     result = {}
