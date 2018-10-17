@@ -66,7 +66,7 @@ function selectClick(obj_){
         if(selectValue == "dabiao"){
             liStr+= "<li><a href='http://172.16.4.22:8081/?server=db&username=root&db=jiancy&edit=rights&where%5BID%5D="+rights[i][0]+"' target='_black'>"+rights[i][2]+"</a></li>";
         }else{
-            liStr+= "<li><a href='http://172.16.4.22:8081/?server=db&username=root&db=jiancy&edit=rights&where%5BID%5D="+rights[i][0]+"' target='_black'>"+rights[i][2]+"("+rights[i][4]+")"+"</a></li>";
+            liStr+= "<li><a href='http://172.16.4.22:8081/?server=db&username=root&db=jiancy&edit=rights&where%5BID%5D="+rights[i][0]+"' target='_black'>"+rights[i][2]+"("+rights[i][3]+")"+"</a></li>";
         }
 
     }

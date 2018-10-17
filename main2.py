@@ -11,17 +11,17 @@ def main():
 def getItemList():
     params = request.params
     page = int(params["page"])-1
-    db = pymysql.connect("172.16.4.22", "intelligent", "intelligent", "jiancy", charset="utf8")
+    db = pymysql.connect("172.16.4.22", "intelligent", "intelligent", "ailab", charset="utf8")
     cursor = db.cursor()
 
-    cursor.execute("select count(1) from testData")
+    cursor.execute("select count(1) from new_case")
     results = cursor.fetchone()
     rowcounts = results[0]
     pagenum = rowcounts / 10 + 1
     if (rowcounts % 10 == 0):
         pagenum = pagenum - 1
 
-    cursor.execute("select id,title from testData limit "+str(page*10)+",10")
+    cursor.execute("select ID,CASE_NAME from new_case limit "+str(page*10)+",10")
     results = cursor.fetchall()
     list = []
     for row in results:
@@ -36,28 +36,28 @@ def getItemList():
 
 @route('/itemView/<id>')
 def itemView(id):
-    db = pymysql.connect("172.16.4.22", "intelligent", "intelligent", "jiancy", charset="utf8")
+    db = pymysql.connect("172.16.4.22", "intelligent", "intelligent", "ailab", charset="utf8")
     cursor = db.cursor()
     # 查询文章
-    cursor.execute("select id,title,content,marked_rights from testData where id=" + id)
+    cursor.execute("select Id,CASE_NAME,CONTENT,rights from  data_case_rights where id=" + id)
     content = cursor.fetchone()
     file = {}
     file["id"]=content[0]
     file["title"] = content[1]
     file["content"] = content[2]
     file["rights"] = []
-    markedRights = json.loads(content[3])
+    markedRights = content[3].split(',')
     rightStr = ""
     for right in markedRights:
         rightStr += str(right)+","
     if(len(rightStr)>0):
         rightStr = rightStr[:-1]
-        cursor.execute("select id,right_no,right_name from rights where UNIQUE_ID in (" + rightStr +") order by id asc")
+        cursor.execute("select id,right_no,right_name from rights where id in (" + rightStr +") order by id asc")
         file["rights"] = cursor.fetchall()
 
     # 查询权利清单
     rights = {}
-    cursor.execute("select version,result,version_des from testResult where testDataId="+id +" order by version asc")
+    cursor.execute("select version,result,version_des from match_rights where caseId ="+id +" order by version asc")
     results = cursor.fetchall()
     for row in results:
         item = {}
@@ -69,20 +69,20 @@ def itemView(id):
             rightStr += str(right["uniqueId"]) + ","
         if (len(rightStr) > 0):
             rightStr = rightStr[:-1]
-            cursor.execute("select id,right_no,right_name,UNIQUE_ID from rights where UNIQUE_ID in (" + rightStr + ") order by id asc")
+            cursor.execute("select id,right_no,right_name from rights where id in (" + rightStr + ") order by id asc")
             rightListTemp = cursor.fetchall()
             item["rights"] = []
             #设置权限
             for right1 in rightListTemp:
                 for right2 in rightList:
-                    if(right1[3] == int(right2["uniqueId"])):
+                    if(right1[0] == int(right2["uniqueId"])):
                         try:
                             weight = right2["weight"]
                         except:
                             weight = right2["distance"]
                         index = 0
                         for pos in range(len(item["rights"])):
-                            if(item["rights"][pos][4]>weight):
+                            if(item["rights"][pos][3]>weight):
                                 index = pos+1
                         right1 = right1 + (weight,)
                         item["rights"].insert(index,list(right1))
